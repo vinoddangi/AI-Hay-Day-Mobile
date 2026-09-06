@@ -24,10 +24,18 @@ jobs:
       - name: Install clasp
         run: npm i -g @google/clasp
 
-      - name: Write service account creds
+      - name: Write service account creds (validate)
         env:
           GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
-        run: echo "$GOOGLE_SERVICE_ACCOUNT" > ./gac.json
+        run: |
+          if [ -z "$GOOGLE_SERVICE_ACCOUNT" ]; then
+            echo "ERROR: GOOGLE_SERVICE_ACCOUNT secret is empty or not set"
+            exit 1
+          fi
+          # safely write exact secret contents to file
+          printf '%s' "$GOOGLE_SERVICE_ACCOUNT" > ./gac.json
+          # validate JSON using node to avoid needing extra packages
+          node -e "try{JSON.parse(require('fs').readFileSync('./gac.json','utf8')); console.log('gac.json parsed OK')}catch(e){console.error('gac.json invalid JSON:', e.message); process.exit(2)}"
 
       - name: Login clasp with service account
         run: clasp login --creds ./gac.json
