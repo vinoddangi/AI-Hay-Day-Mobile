@@ -10,6 +10,8 @@
     "dev:api": "node scripts/mock-server/server.js",
     "apps:list-deployments": "node scripts/apps-script/list-deployments.mjs",
     "apps:deploy": "npm run build:webapp && npx clasp push --rootDir scripts/apps-script/webapp && node scripts/apps-script/create-or-update-deployment.mjs",
+    "inline:webapp": "node scripts/inline-webapp-assets.js",
+    "deploy:local": "bash scripts/deploy-local.sh",
     "lint": "oxlint",
     "preview": "vite preview"
   },
