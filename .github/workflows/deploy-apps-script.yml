@@ -25,16 +25,22 @@ jobs:
       - name: Install clasp
         run: npm i -g @google/clasp
 
-      - name: Write service account creds (from base64)
+      - name: Write service account creds (supports base64 or raw JSON)
         env:
           GOOGLE_SERVICE_ACCOUNT_B64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_B64 }}
+          GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
         run: |
-          if [ -z "$GOOGLE_SERVICE_ACCOUNT_B64" ]; then
-            echo "ERROR: GOOGLE_SERVICE_ACCOUNT_B64 secret is empty or not set"
+          # If base64 secret provided, decode it; otherwise use raw JSON secret
+          if [ -n "$GOOGLE_SERVICE_ACCOUNT_B64" ]; then
+            echo "Using base64 secret GOOGLE_SERVICE_ACCOUNT_B64"
+            printf '%s' "$GOOGLE_SERVICE_ACCOUNT_B64" | base64 --decode > ./gac.json
+          elif [ -n "$GOOGLE_SERVICE_ACCOUNT" ]; then
+            echo "Using raw JSON secret GOOGLE_SERVICE_ACCOUNT"
+            printf '%s' "$GOOGLE_SERVICE_ACCOUNT" > ./gac.json
+          else
+            echo "ERROR: neither GOOGLE_SERVICE_ACCOUNT_B64 nor GOOGLE_SERVICE_ACCOUNT is set"
             exit 1
           fi
-          # decode base64 secret to file (Ubuntu runner supports --decode)
-          printf '%s' "$GOOGLE_SERVICE_ACCOUNT_B64" | base64 --decode > ./gac.json
           # validate JSON using node
           node -e "try{JSON.parse(require('fs').readFileSync('./gac.json','utf8')); console.log('gac.json parsed OK')}catch(e){console.error('gac.json invalid JSON:', e.message); process.exit(2)}"
 
