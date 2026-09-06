@@ -1,0 +1,56 @@
+name: Deploy Apps Script Webapp
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build webapp (dist -> apps-script webapp)
+        run: npm run build:webapp
+
+      - name: Install clasp
+        run: npm i -g @google/clasp
+
+      - name: Write service account creds
+        env:
+          GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
+        run: echo "$GOOGLE_SERVICE_ACCOUNT" > ./gac.json
+
+      - name: Login clasp with service account
+        run: clasp login --creds ./gac.json
+
+      - name: Push to Apps Script project
+        env:
+          CLASP_DISABLE_AUTO_UPDATE: 'true'
+        run: npx clasp push --rootDir scripts/apps-script/webapp
+
+      - name: Create version and update deployment
+        env:
+          GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
+          APPS_SCRIPT_ID: ${{ secrets.APPS_SCRIPT_ID }}
+          APPS_SCRIPT_DEPLOYMENT_ID: ${{ secrets.APPS_SCRIPT_DEPLOYMENT_ID }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: node scripts/apps-script/ci-deploy.mjs
+
+      - name: Export webapp URL
+        if: always()
+        run: |
+          if [ -f webapp-url.txt ]; then
+            echo "WEBAPP_URL=$(cat webapp-url.txt)" >> $GITHUB_ENV
+            echo "Exported WEBAPP_URL"
+          else
+            echo "webapp-url.txt not found; skipping export"
+          fi
