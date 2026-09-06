@@ -14,6 +14,9 @@ npm run build
 echo "==> Copying dist into apps-script webapp"
 node scripts/copy-dist-to-webapp.js
 
+echo "==> Inlining webapp assets (JS/CSS) into index.html"
+node scripts/inline-webapp-assets.js
+
 WEBAPP_DIR="$ROOT/scripts/apps-script/webapp"
 if [ ! -d "$WEBAPP_DIR" ]; then
   echo "webapp folder not found: $WEBAPP_DIR"
